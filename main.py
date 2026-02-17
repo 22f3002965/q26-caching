@@ -1,4 +1,47 @@
+dantic import BaseModel
 import time
+import os
+import uvicorn
+
+from cache import IntelligentCache
+
+app = FastAPI()
+
+# Initialize cache (lightweight only)
+cache = IntelligentCache()
+
+
+class QueryRequest(BaseModel):
+    query: str
+    application: str
+
+
+@app.post("/")
+def handle_query(request: QueryRequest):
+    start_time = time.time()
+
+    result = cache.process_query(request.query)
+
+    latency = int((time.time() - start_time) * 1000)
+
+    return {
+        "answer": result["answer"],
+        "cached": result["cached"],
+        "latency": latency,
+        "cacheKey": result["cacheKey"]
+    }
+
+
+@app.get("/analytics")
+def get_analytics():
+    return cache.get_analytics()
+
+
+# ✅ This makes it work locally
+# Railway will ignore this and use its own Start Command
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8002))
+    uvicorn.run(app, host="0.0.0.0", port=port)import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 from cache import IntelligentCache
